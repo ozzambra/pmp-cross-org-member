@@ -53,15 +53,24 @@ def getDynamoDBCurrentList(tableName):
     return IDs
 
 
+def get_management_account_info():
+    client = boto3.client('organizations')
+    response = client.describe_organization()
+    management_account_id = response["Organization"]["MasterAccountId"]
+    management_account_email = response["Organization"]["MasterAccountEmail"]
+    return management_account_id, management_account_email
+
+
 def update_sync_timestamp(tableName, context, number_of_experiences):
     table = get_dynamo_table(tableName)
-    aws_account_id = context.invoked_function_arn.split(":")[4]
+    aws_account_id, management_account_email = get_management_account_info()
     ts = time.time()
     dt = datetime.datetime.fromtimestamp(ts).isoformat()
     table.update_item(
         Key={'ID': aws_account_id},
-        UpdateExpression='SET stamp =:stamp, update_time_utc =:time, experiences_updated =:exps',
+        UpdateExpression='SET member_org_email =:moe, stamp =:stamp, update_time_utc =:time, experiences_updated =:exps',
         ExpressionAttributeValues={
+            ':moe': str(management_account_email),
             ':stamp': str(ts),
             ':time': dt,
             ':exps': number_of_experiences},
@@ -378,14 +387,6 @@ def lambda_handler(event, context):
         pmp.sync_experience(exp_id)
         i += 1
 
-    # Only update timestamp if there is an active experience with the management account associated
-
-    aws_account_id = context.invoked_function_arn.split(":")[4]
-    logger.info(f"Running on AWS Account ID: {aws_account_id}")
-    if pmp.is_aws_account_id_in_active_experience_audiences(aws_account_id):
-        logger.info(f"Updating timestamp")
-        update_sync_timestamp(sync_timestamps_table_name,
-                              context, number_of_experiences)
-    else:
-        logger.info(
-            f"No active experiences with management account {aws_account_id} found")
+    logger.info(f"Updating timestamp")
+    update_sync_timestamp(sync_timestamps_table_name,
+                          context, number_of_experiences)
