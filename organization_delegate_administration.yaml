@@ -18,11 +18,16 @@ Resources:
               AWS: !Ref DelegatedAdministratorAccountId
             Action:
               - "organizations:DescribeOrganization"
+              - "organizations:DescribePolicy"
               - "organizations:ListRoots"
-              - "organizations:DescribeOrganization"
+              - "organizations:ListPolicies"
+              - "organizations:ListPoliciesForTarget"
+              - "organizations:ListTargetsForPolicy"
               - "organizations:CreatePolicy"
               - "organizations:UpdatePolicy"
               - "organizations:DeletePolicy"
               - "organizations:AttachPolicy"
               - "organizations:DetachPolicy"
+              - "organizations:EnablePolicyType"
+              - "organizations:DisablePolicyType"
             Resource: "*"
